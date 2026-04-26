@@ -7,6 +7,7 @@ app.use(express.json());
 
 app.use('/api/profiles', require('./routes/profiles'));
 app.use('/api/match', require('./routes/match'));
+app.use('/api/stats', require('./routes/stats'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

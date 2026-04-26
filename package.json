@@ -1,0 +1,8 @@
+{
+  "name": "matchme",
+  "version": "1.0.0",
+  "description": "MatchMe compatibility platform — serverless functions",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3"
+  }
+}
