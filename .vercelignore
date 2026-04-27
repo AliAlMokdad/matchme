@@ -1,0 +1,10 @@
+# Local Express dev server — not used on Vercel
+backend/
+
+# Frontend source (Vercel only needs the built dist)
+frontend/node_modules/
+frontend/src/
+
+# Misc
+*.md
+.env*
