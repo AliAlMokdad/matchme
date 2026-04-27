@@ -213,6 +213,23 @@
 .review-item { font-size: 0.9rem; color: var(--gray-600); }
 .review-item strong { color: var(--gray-800); }
 
+/* Travel hint */
+.travel-hint {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #d97706;
+  font-weight: 500;
+  background: #fef3c7;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border-left: 3px solid #f59e0b;
+}
+
+[dir='rtl'] .travel-hint {
+  border-left: none;
+  border-right: 3px solid #f59e0b;
+}
+
 /* Error */
 .form-error {
   background: #fef2f2;

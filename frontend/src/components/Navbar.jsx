@@ -1,8 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './LanguageSwitcher';
 import './Navbar.css';
 
 export default function Navbar() {
   const { pathname } = useLocation();
+  const { t } = useTranslation();
 
   return (
     <nav className="navbar">
@@ -12,11 +15,12 @@ export default function Navbar() {
       </Link>
       <div className="navbar-links">
         <Link to="/create" className={`nav-link ${pathname === '/create' ? 'active' : ''}`}>
-          Create Profile
+          {t('nav.createProfile')}
         </Link>
         <Link to="/match" className={`nav-link nav-link-cta ${pathname === '/match' ? 'active' : ''}`}>
-          Find Match
+          {t('nav.findMatch')}
         </Link>
+        <LanguageSwitcher />
       </div>
     </nav>
   );

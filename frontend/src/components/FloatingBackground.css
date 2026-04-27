@@ -1,0 +1,44 @@
+/* ── Floating Background Overlay ──────────────────────────────────────────── */
+
+.floating-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.fb-particle {
+  position: absolute;
+  bottom: -60px;
+  will-change: transform, opacity;
+  animation: fb-rise linear infinite both;
+  filter: blur(0.3px);
+  user-select: none;
+  line-height: 1;
+}
+
+@keyframes fb-rise {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-110vh) translateX(var(--drift)) rotate(var(--rotate)) scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .fb-particle {
+    animation: none;
+    display: none;
+  }
+}

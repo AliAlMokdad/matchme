@@ -197,6 +197,24 @@
 .type-romantic { border-top-color: #f472b6; }
 .type-roommate { border-top-color: #7c3aed; }
 .type-friend   { border-top-color: #06b6d4; }
+.type-travel   { border-top-color: #f59e0b; }
+
+/* 4-column grid for 4 match types */
+.type-cards.four-col {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+@media (max-width: 900px) {
+  .type-cards.four-col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .type-cards.four-col {
+    grid-template-columns: 1fr;
+  }
+}
 
 .type-emoji {
   font-size: 2.5rem;

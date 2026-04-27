@@ -1,18 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import RadarChart from '../components/RadarChart';
 import Confetti from '../components/Confetti';
 import './Match.css';
-
-const SECTION_LABELS = {
-  values: '💎 Values',
-  eq: '🧠 Emotional Intelligence',
-  behavioral: '⚡ Behavioral',
-  lifestyle: '🎯 Lifestyle',
-  communication: '💬 Communication',
-  partnership: '🤝 Partnership',
-  daily: '☀️ Daily Life',
-};
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -35,7 +26,7 @@ function ScoreRing({ score, label, emoji, color }) {
   );
 }
 
-function PersonalityCard({ name, profile, color }) {
+function PersonalityCard({ name, profile, color, dimLabels }) {
   if (!profile) return null;
   const { personality, eq, dimensions } = profile;
   return (
@@ -44,13 +35,13 @@ function PersonalityCard({ name, profile, color }) {
       <div className="pc-name-label">{name}</div>
       <div className="pc-type">{personality.name}</div>
       <div className="pc-eq">
-        EQ (Emotional Intelligence): <strong>{eq}/100</strong>
+        EQ: <strong>{eq}/100</strong>
       </div>
       <p className="pc-desc">{personality.desc}</p>
       <div className="pc-dims">
         {Object.entries(dimensions).map(([dim, val]) => (
           <div key={dim} className="dim-row">
-            <span className="dim-label">{dimLabel(dim)}</span>
+            <span className="dim-label">{dimLabels[dim] || dim}</span>
             <div className="dim-bar-track">
               <div className="dim-bar-fill" style={{ width: `${val}%`, background: color }} />
             </div>
@@ -60,16 +51,6 @@ function PersonalityCard({ name, profile, color }) {
       </div>
     </div>
   );
-}
-
-function dimLabel(k) {
-  return {
-    commitment: 'Commitment',
-    emotionalDepth: 'Emotional Depth',
-    adaptability: 'Adaptability',
-    communication: 'Communication',
-    lifestyle: 'Lifestyle',
-  }[k] || k;
 }
 
 function SectionBar({ label, score }) {
@@ -85,10 +66,12 @@ function SectionBar({ label, score }) {
   );
 }
 
-function CompatBlock({ label, emoji, color, data, defaultOpen = false, badge }) {
+function CompatBlock({ label, emoji, color, data, defaultOpen = false, badge, t }) {
   const [open, setOpen] = useState(defaultOpen);
   if (!data) return null;
-  const tag = data.score >= 80 ? 'Excellent' : data.score >= 65 ? 'Good' : data.score >= 45 ? 'Moderate' : data.score >= 25 ? 'Low' : 'Minimal';
+  const score = data.score;
+  const tag = score >= 80 ? t('match.tagExcellent') : score >= 65 ? t('match.tagGood')
+    : score >= 45 ? t('match.tagModerate') : score >= 25 ? t('match.tagLow') : t('match.tagMinimal');
   return (
     <div className="compat-block" style={{ '--bc': color }}>
       <button className="compat-header" onClick={() => setOpen(o => !o)}>
@@ -99,11 +82,11 @@ function CompatBlock({ label, emoji, color, data, defaultOpen = false, badge }) 
               {label}
               {badge && <span className="compat-badge">{badge}</span>}
             </div>
-            <div className="compat-subtag" style={{ color }}>{data.score}% — {tag}</div>
+            <div className="compat-subtag" style={{ color }}>{score}% — {tag}</div>
           </div>
         </div>
         <div className="compat-right">
-          <div className="mini-bar"><div style={{ width: `${data.score}%`, background: color }} /></div>
+          <div className="mini-bar"><div style={{ width: `${score}%`, background: color }} /></div>
           <span>{open ? '▲' : '▼'}</span>
         </div>
       </button>
@@ -111,18 +94,18 @@ function CompatBlock({ label, emoji, color, data, defaultOpen = false, badge }) 
         <div className="compat-body">
           {data.reasons?.length > 0 && (
             <div className="cb-section">
-              <div className="cb-head">✅ What works</div>
+              <div className="cb-head">{t('match.whatWorks')}</div>
               <ul>{data.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
             </div>
           )}
           {data.concerns?.length > 0 && (
             <div className="cb-section">
-              <div className="cb-head">⚠️ Watch out for</div>
+              <div className="cb-head">{t('match.watchOut')}</div>
               <ul className="concerns">{data.concerns.map((c, i) => <li key={i}>{c}</li>)}</ul>
             </div>
           )}
           {(!data.reasons?.length && !data.concerns?.length) && (
-            <p className="cb-empty">Not enough answers to generate detailed analysis for this type.</p>
+            <p className="cb-empty">{t('match.noAnalysis')}</p>
           )}
         </div>
       )}
@@ -130,44 +113,37 @@ function CompatBlock({ label, emoji, color, data, defaultOpen = false, badge }) 
   );
 }
 
-const COMPAT_TYPES = [
-  { key: 'romantic',  label: 'Romantic',   emoji: '💕', color: '#f472b6' },
-  { key: 'roommate',  label: 'Roommate',   emoji: '🏠', color: '#7c3aed' },
-  { key: 'friendship',label: 'Friendship', emoji: '🤝', color: '#06b6d4' },
-];
-
-function SmartCompatSection({ result }) {
+function SmartCompatSection({ result, t }) {
   const [picked, setPicked] = useState(null);
 
-  const sharedTypes = COMPAT_TYPES.filter(t => result[t.key]?.bothSelected);
-  const otherTypes  = COMPAT_TYPES.filter(t => !result[t.key]?.bothSelected);
+  const COMPAT_TYPES = [
+    { key: 'romantic',   label: t('match.romantic'),   emoji: '💕', color: '#f472b6' },
+    { key: 'roommate',   label: t('match.roommate'),   emoji: '🏠', color: '#7c3aed' },
+    { key: 'friendship', label: t('match.friendship'), emoji: '🤝', color: '#06b6d4' },
+    { key: 'travel',     label: t('match.travel'),     emoji: '✈️', color: '#f59e0b' },
+  ].filter(tp => result[tp.key] != null);
 
-  // If both selected the same type → auto-expand those
-  // If not → show a picker
+  const sharedTypes = COMPAT_TYPES.filter(tp => result[tp.key]?.bothSelected);
+  const otherTypes  = COMPAT_TYPES.filter(tp => !result[tp.key]?.bothSelected);
+
   return (
     <div className="white-card">
-      <h3 className="card-title">Compatibility by Relationship Type</h3>
+      <h3 className="card-title">{t('match.compatTitle')}</h3>
 
       {sharedTypes.length > 0 && (
         <>
           <div className="shared-badge-row">
             <span className="shared-icon">✨</span>
             <span className="shared-text">
-              You're both looking for the same {sharedTypes.length === 1 ? 'thing' : 'things'}
-              {' '}— here's a deeper look.
+              {t('match.sharedText')}{' '}
+              {sharedTypes.length === 1 ? t('match.sharedThing') : t('match.sharedThings')}{' '}
+              {t('match.sharedSuffix')}
             </span>
           </div>
           <div className="compat-blocks">
-            {sharedTypes.map(t => (
-              <CompatBlock
-                key={t.key}
-                label={t.label}
-                emoji={t.emoji}
-                color={t.color}
-                data={result[t.key]}
-                defaultOpen
-                badge="✓ Both selected"
-              />
+            {sharedTypes.map(tp => (
+              <CompatBlock key={tp.key} label={tp.label} emoji={tp.emoji} color={tp.color}
+                data={result[tp.key]} defaultOpen badge={t('match.bothSelected')} t={t} />
             ))}
           </div>
         </>
@@ -175,40 +151,29 @@ function SmartCompatSection({ result }) {
 
       {otherTypes.length > 0 && (
         <div className={sharedTypes.length > 0 ? 'explore-other' : ''}>
-          {sharedTypes.length > 0 && (
-            <p className="explore-label">Curious about other compatibility types?</p>
-          )}
-          {sharedTypes.length === 0 && (
-            <p className="explore-label">Pick what you'd like to explore:</p>
-          )}
-
+          <p className="explore-label">
+            {sharedTypes.length > 0 ? t('match.explore') : t('match.pickExplore')}
+          </p>
           <div className="compat-picker">
-            {otherTypes.map(t => (
+            {otherTypes.map(tp => (
               <button
-                key={t.key}
-                className={`picker-btn ${picked === t.key ? 'active' : ''}`}
-                style={{ '--bc': t.color }}
-                onClick={() => setPicked(prev => prev === t.key ? null : t.key)}
+                key={tp.key}
+                className={`picker-btn ${picked === tp.key ? 'active' : ''}`}
+                style={{ '--bc': tp.color }}
+                onClick={() => setPicked(prev => prev === tp.key ? null : tp.key)}
               >
-                <span>{t.emoji}</span> {t.label}
-                <span className="picker-score">{result[t.key]?.score}%</span>
+                <span>{tp.emoji}</span> {tp.label}
+                <span className="picker-score">{result[tp.key]?.score}%</span>
               </button>
             ))}
           </div>
-
           {picked && (
             <div className="compat-blocks" style={{ marginTop: '1rem' }}>
               {(() => {
-                const t = COMPAT_TYPES.find(x => x.key === picked);
-                return t ? (
-                  <CompatBlock
-                    key={t.key}
-                    label={t.label}
-                    emoji={t.emoji}
-                    color={t.color}
-                    data={result[t.key]}
-                    defaultOpen
-                  />
+                const tp = COMPAT_TYPES.find(x => x.key === picked);
+                return tp ? (
+                  <CompatBlock key={tp.key} label={tp.label} emoji={tp.emoji} color={tp.color}
+                    data={result[tp.key]} defaultOpen t={t} />
                 ) : null;
               })()}
             </div>
@@ -219,12 +184,12 @@ function SmartCompatSection({ result }) {
   );
 }
 
-function OpenAnswers({ openAnswers, name1, name2 }) {
+function OpenAnswers({ openAnswers, name1, name2, t }) {
   if (!openAnswers?.length) return null;
   return (
     <div className="white-card">
-      <h3 className="card-title">💬 In Their Own Words</h3>
-      <p className="open-intro">Side-by-side answers to the open questions — see how they think in their own voice.</p>
+      <h3 className="card-title">{t('match.openAnswers')}</h3>
+      <p className="open-intro">{t('match.openIntro')}</p>
       <div className="open-answers-list">
         {openAnswers.map((item, i) => (
           <div key={i} className="open-answer-row">
@@ -232,16 +197,140 @@ function OpenAnswers({ openAnswers, name1, name2 }) {
             <div className="open-cols">
               <div className="open-col open-col-a">
                 <div className="open-who">{name1}</div>
-                <p className="open-text">{item.a || <em className="open-none">Not answered</em>}</p>
+                <p className="open-text">{item.a || <em className="open-none">{t('match.notAnswered')}</em>}</p>
               </div>
               <div className="open-col open-col-b">
                 <div className="open-who">{name2}</div>
-                <p className="open-text">{item.b || <em className="open-none">Not answered</em>}</p>
+                <p className="open-text">{item.b || <em className="open-none">{t('match.notAnswered')}</em>}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function AISection({ result, lang, t }) {
+  const [aiData, setAiData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [generated, setGenerated] = useState(false);
+
+  async function generate() {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile1: result.profile1,
+          profile2: result.profile2,
+          result: {
+            overall: result.overall,
+            sections: result.sections,
+            openAnswers: result.openAnswers,
+          },
+          lang,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'AI failed');
+      setAiData(data);
+      setGenerated(true);
+    } catch (e) {
+      setError(t('match.aiError'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!generated && !loading) {
+    return (
+      <div className="ai-teaser-card">
+        <div className="ai-teaser-icon">🤖</div>
+        <div className="ai-teaser-text">
+          <strong>{t('match.aiNarrative')}</strong>
+          <p>Get a personalised, AI-written analysis of this match — unique insights, an icebreaker message, and communication style profiles.</p>
+        </div>
+        <button className="ai-gen-btn" onClick={generate}>{t('match.aiBtn')}</button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="ai-loading-card">
+        <div className="ai-spinner" />
+        <p>{t('match.aiGenerating')}</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="ai-error-card">
+        <p>⚠️ {error}</p>
+        <button className="ai-retry-btn" onClick={generate}>{t('match.aiBtn')}</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ai-result-card">
+      {/* Narrative */}
+      <div className="ai-section-head">
+        <span className="ai-badge">✨ AI</span>
+        <h3>{t('match.aiNarrative')}</h3>
+      </div>
+      <div className="ai-narrative">
+        {aiData.narrative.split('\n').filter(Boolean).map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
+
+      {/* Personalities */}
+      {aiData.personalities && (
+        <div className="ai-personalities">
+          <h4>{t('match.aiPersonalities')}</h4>
+          <div className="ai-pers-grid">
+            <div className="ai-pers-item">
+              <div className="ai-pers-name">{result.profile1.name}</div>
+              <p>{aiData.personalities.a}</p>
+            </div>
+            <div className="ai-pers-item">
+              <div className="ai-pers-name">{result.profile2.name}</div>
+              <p>{aiData.personalities.b}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Open Similarity */}
+      {aiData.openSimilarity != null && (
+        <div className="ai-similarity">
+          <span className="ai-sim-label">{t('match.aiSimilarity')}</span>
+          <div className="ai-sim-bar-wrap">
+            <div className="ai-sim-bar">
+              <div className="ai-sim-fill" style={{ width: `${aiData.openSimilarity}%` }} />
+            </div>
+            <span className="ai-sim-val">{aiData.openSimilarity}%</span>
+          </div>
+        </div>
+      )}
+
+      {/* Icebreaker */}
+      {aiData.icebreaker && (
+        <div className="ai-icebreaker">
+          <h4>{t('match.aiIcebreaker')}</h4>
+          <div className="ai-ice-bubble">
+            <span className="ai-ice-quote">"</span>
+            {aiData.icebreaker}
+            <span className="ai-ice-quote">"</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -268,6 +357,8 @@ function formatTip(tip) {
 
 export default function Match() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t, i18n } = useTranslation();
+
   const [id1, setId1] = useState(searchParams.get('p1') || '');
   const [id2, setId2] = useState(searchParams.get('p2') || '');
   const [result, setResult] = useState(null);
@@ -275,6 +366,9 @@ export default function Match() {
   const [error, setError] = useState('');
   const [showConfetti, setShowConfetti] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const sectionLabels = t('match.sectionLabels', { returnObjects: true });
+  const dimLabels = t('match.dimLabels', { returnObjects: true });
 
   const runMatch = useCallback(async (p1, p2) => {
     setError(''); setResult(null); setShowConfetti(false);
@@ -296,20 +390,17 @@ export default function Match() {
     }
   }, [setSearchParams]);
 
-  // Auto-run if URL params present on first load
   useEffect(() => {
     const p1 = searchParams.get('p1');
     const p2 = searchParams.get('p2');
-    if (p1 && p2 && p1 !== p2) {
-      runMatch(p1, p2);
-    }
+    if (p1 && p2 && p1 !== p2) runMatch(p1, p2);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleMatch(e) {
     e.preventDefault();
-    if (!id1 || !id2) return setError('Please enter both profile IDs.');
-    if (id1 === id2) return setError('Please enter two different profile IDs.');
+    if (!id1 || !id2) return setError(t('match.errEnterIds'));
+    if (id1 === id2) return setError(t('match.errDifferentIds'));
     runMatch(id1, id2);
   }
 
@@ -321,11 +412,11 @@ export default function Match() {
   }
 
   const overallLabel = result
-    ? result.overall >= 85 ? '🌟 Exceptional Match'
-    : result.overall >= 70 ? '💚 Strong Match'
-    : result.overall >= 55 ? '🤝 Good Potential'
-    : result.overall >= 40 ? '⚡ Work Required'
-    : '🔍 Significant Differences'
+    ? result.overall >= 85 ? t('match.labelExcellent')
+    : result.overall >= 70 ? t('match.labelStrong')
+    : result.overall >= 55 ? t('match.labelGood')
+    : result.overall >= 40 ? t('match.labelWork')
+    : t('match.labelDiff')
     : '';
 
   const radarData = result ? {
@@ -333,32 +424,45 @@ export default function Match() {
     b: { values: Object.values(result.profiles.b.dimensions) },
   } : null;
 
-  const radarLabels = ['Commitment', 'Emo. Depth', 'Adaptability', 'Communication', 'Lifestyle'];
+  const radarLabels = Object.values(dimLabels || {
+    commitment: 'Commitment', emotionalDepth: 'Emo. Depth',
+    adaptability: 'Adaptability', communication: 'Communication', lifestyle: 'Lifestyle',
+  });
+
+  // Determine which score rings to show (only show travel if both selected it)
+  const rings = result ? [
+    { score: result.romantic.score,   label: t('match.romantic'),   emoji: '💕', color: '#f472b6' },
+    { score: result.roommate.score,   label: t('match.roommate'),   emoji: '🏠', color: '#7c3aed' },
+    { score: result.friendship.score, label: t('match.friendship'), emoji: '🤝', color: '#06b6d4' },
+    ...(result.travel?.bothSelected ? [{ score: result.travel.score, label: t('match.travel'), emoji: '✈️', color: '#f59e0b' }] : []),
+  ] : [];
 
   return (
     <div className="match-page">
       <Confetti active={showConfetti} />
 
       <div className="match-header">
-        <h1>Compatibility Check</h1>
-        <p>A deep analytical look at how two people fit together.</p>
+        <h1>{t('match.title')}</h1>
+        <p>{t('match.subtitle')}</p>
       </div>
 
       <form className="match-form" onSubmit={handleMatch}>
         <div className="id-inputs">
           <div className="id-group">
-            <label>Profile ID — Person 1</label>
-            <input type="number" min="1" value={id1} onChange={e => setId1(e.target.value)} placeholder="e.g. 1" />
+            <label>{t('match.person1')}</label>
+            <input type="number" min="1" value={id1} onChange={e => setId1(e.target.value)}
+              placeholder={t('match.placeholder')} />
           </div>
-          <div className="vs-pill">VS</div>
+          <div className="vs-pill">{t('match.vs')}</div>
           <div className="id-group">
-            <label>Profile ID — Person 2</label>
-            <input type="number" min="1" value={id2} onChange={e => setId2(e.target.value)} placeholder="e.g. 2" />
+            <label>{t('match.person2')}</label>
+            <input type="number" min="1" value={id2} onChange={e => setId2(e.target.value)}
+              placeholder={t('match.placeholder')} />
           </div>
         </div>
         {error && <div className="form-error">⚠️ {error}</div>}
         <button type="submit" className="match-btn" disabled={loading}>
-          {loading ? '⏳ Analysing...' : '🔍 Calculate Deep Compatibility'}
+          {loading ? t('match.calculating') : t('match.calculate')}
         </button>
       </form>
 
@@ -367,48 +471,54 @@ export default function Match() {
       {result && (
         <div className="results">
 
-          {/* Share button */}
+          {/* Share */}
           <div className="share-row">
             <button className="share-btn" onClick={handleShare}>
-              {copied ? '✅ Link copied!' : '🔗 Share these results'}
+              {copied ? t('match.copied') : t('match.shareBtn')}
             </button>
           </div>
 
           {/* Name Banner */}
           <div className="name-banner">
-            <div className="person-tag purple">{result.profile1.name}{result.profile1.age ? `, ${result.profile1.age}` : ''}</div>
+            <div className="person-tag purple">
+              {result.profile1.name}{result.profile1.age ? `, ${result.profile1.age}` : ''}
+            </div>
             <div className="heart-mid">💜</div>
-            <div className="person-tag pink">{result.profile2.name}{result.profile2.age ? `, ${result.profile2.age}` : ''}</div>
+            <div className="person-tag pink">
+              {result.profile2.name}{result.profile2.age ? `, ${result.profile2.age}` : ''}
+            </div>
           </div>
 
           {/* Overall Score Card */}
           <div className="overall-card">
             <div className="overall-top">
               <div>
-                <div className="overall-label">Overall Compatibility</div>
+                <div className="overall-label">{t('match.overall')}</div>
                 <div className="overall-score">{result.overall}%</div>
                 <div className="overall-tag">{overallLabel}</div>
                 {result.overall >= 80 && (
-                  <div className="exceptional-note">🎉 This is a rare high-match score!</div>
+                  <div className="exceptional-note">{t('match.exceptional')}</div>
                 )}
               </div>
               <div className="score-rings">
-                <ScoreRing score={result.romantic.score} label="Romantic" emoji="💕" color="#f472b6" />
-                <ScoreRing score={result.roommate.score} label="Roommate" emoji="🏠" color="#7c3aed" />
-                <ScoreRing score={result.friendship.score} label="Friendship" emoji="🤝" color="#06b6d4" />
+                {rings.map(r => (
+                  <ScoreRing key={r.label} score={r.score} label={r.label} emoji={r.emoji} color={r.color} />
+                ))}
               </div>
             </div>
           </div>
 
           {/* Personality Cards */}
           <div className="personality-grid">
-            <PersonalityCard name={result.profile1.name} profile={result.profiles.a} color="#7c3aed" />
-            <PersonalityCard name={result.profile2.name} profile={result.profiles.b} color="#db2777" />
+            <PersonalityCard name={result.profile1.name} profile={result.profiles.a}
+              color="#7c3aed" dimLabels={dimLabels} />
+            <PersonalityCard name={result.profile2.name} profile={result.profiles.b}
+              color="#db2777" dimLabels={dimLabels} />
           </div>
 
           {/* Radar Chart */}
           <div className="radar-card">
-            <h3 className="card-title">Personality Dimension Comparison</h3>
+            <h3 className="card-title">{t('match.personalityDimensions')}</h3>
             <div className="radar-wrap">
               <RadarChart a={radarData.a} b={radarData.b} labels={radarLabels} />
               <div className="radar-legend">
@@ -420,10 +530,10 @@ export default function Match() {
 
           {/* Section Breakdown */}
           <div className="white-card">
-            <h3 className="card-title">Section-by-Section Breakdown</h3>
+            <h3 className="card-title">{t('match.sectionBreakdown')}</h3>
             <div className="section-bars">
               {Object.entries(result.sections).map(([k, v]) => (
-                <SectionBar key={k} label={SECTION_LABELS[k] || k} score={v} />
+                <SectionBar key={k} label={(sectionLabels && sectionLabels[k]) || k} score={v} />
               ))}
             </div>
           </div>
@@ -431,7 +541,7 @@ export default function Match() {
           {/* Key Insights */}
           {result.insights?.length > 0 && (
             <div className="white-card">
-              <h3 className="card-title">💡 Key Insights</h3>
+              <h3 className="card-title">{t('match.keyInsights')}</h3>
               <div className="insights-list">
                 {result.insights.map((ins, i) => (
                   <div key={i} className="insight-item"
@@ -442,18 +552,22 @@ export default function Match() {
           )}
 
           {/* Smart Compatibility Section */}
-          <SmartCompatSection result={result} />
+          <SmartCompatSection result={result} t={t} />
+
+          {/* AI Section */}
+          <AISection result={result} lang={i18n.language || 'en'} t={t} />
 
           {/* Open Answers */}
           <OpenAnswers
             openAnswers={result.openAnswers}
             name1={result.profile1.name}
             name2={result.profile2.name}
+            t={t}
           />
 
           {/* Tips */}
           <div className="tips-card">
-            <h3 className="card-title">🛠️ Practical Tips to Make It Work</h3>
+            <h3 className="card-title">{t('match.tipsTitle')}</h3>
             <ol className="tips-list">
               {result.tips.map((tip, i) => (
                 <li key={i} className="tip-item">
@@ -468,7 +582,7 @@ export default function Match() {
             setResult(null); setId1(''); setId2('');
             setSearchParams({}, { replace: true });
           }}>
-            Try Another Match
+            {t('match.tryAnother')}
           </button>
         </div>
       )}

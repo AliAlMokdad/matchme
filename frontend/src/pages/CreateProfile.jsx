@@ -1,40 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SECTIONS } from '../data/questions';
+import { useTranslation } from 'react-i18next';
+import { getSectionsFor } from '../data/questions';
 import QuestionStep from '../components/QuestionStep';
+import CityAutocomplete from '../components/CityAutocomplete';
 import './CreateProfile.css';
 
 const STORAGE_KEY = 'matchme_draft';
 
-const BASIC_FIELDS = [
-  { id: 'name', label: 'Your First Name', type: 'text', placeholder: 'e.g. Alex', required: true },
-  { id: 'age',  label: 'Age',             type: 'number', placeholder: 'e.g. 27', required: true },
-  { id: 'gender', label: 'Gender', type: 'select', options: ['', 'Man', 'Woman', 'Non-binary', 'Other / Prefer not to say'] },
-  { id: 'city', label: 'City / Location', type: 'text', placeholder: 'e.g. New York' },
-];
-
-const LOOKING_FOR = [
-  { value: 'romantic', label: '💕 Romantic Partner' },
-  { value: 'roommate', label: '🏠 Roommate' },
-  { value: 'friend',   label: '🤝 Friend' },
-];
-
 export default function CreateProfile() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0); // 0 = basic, 1–7 = sections, 8 = submit
-  const [basic, setBasic] = useState({ name: '', age: '', gender: '', city: '', looking_for: [], what_i_bring: '', deal_breakers: '' });
+  const { t } = useTranslation();
+
+  const [step, setStep] = useState(0);
+  const [basic, setBasic] = useState({
+    name: '', age: '', gender: '', city: '',
+    looking_for: [], what_i_bring: '', deal_breakers: '',
+  });
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [created, setCreated] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  // Adaptive sections based on looking_for selection
+  const sections = useMemo(() => getSectionsFor(basic.looking_for), [basic.looking_for]);
+
   // Restore draft from localStorage
   useEffect(() => {
     try {
       const draft = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-      if (draft) { setBasic(draft.basic || basic); setAnswers(draft.answers || {}); }
+      if (draft) {
+        if (draft.basic) setBasic(draft.basic);
+        if (draft.answers) setAnswers(draft.answers);
+      }
     } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Autosave draft
@@ -42,9 +43,9 @@ export default function CreateProfile() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ basic, answers }));
   }, [basic, answers]);
 
-  const totalSteps = SECTIONS.length + 1; // +1 for basic
+  const totalSteps = sections.length + 1; // +1 for basic info
   const progress = Math.round((step / totalSteps) * 100);
-  const currentSection = step > 0 ? SECTIONS[step - 1] : null;
+  const currentSection = step > 0 ? sections[step - 1] : null;
 
   function setAnswer(qid, val) {
     setAnswers(prev => ({ ...prev, [qid]: val }));
@@ -53,22 +54,28 @@ export default function CreateProfile() {
   function toggleLookingFor(val) {
     setBasic(b => ({
       ...b,
-      looking_for: b.looking_for.includes(val) ? b.looking_for.filter(v => v !== val) : [...b.looking_for, val],
+      looking_for: b.looking_for.includes(val)
+        ? b.looking_for.filter(v => v !== val)
+        : [...b.looking_for, val],
     }));
+    // Reset to step 0 if user changes looking_for to avoid invalid section index
+    if (step > 0) {
+      setStep(0);
+      setError('');
+    }
   }
 
   function validateStep() {
     if (step === 0) {
-      if (!basic.name.trim()) return 'Please enter your name.';
-      if (!basic.age || basic.age < 16) return 'Please enter a valid age (16+).';
-      if (basic.looking_for.length === 0) return 'Please select at least one thing you are looking for.';
+      if (!basic.name.trim()) return t('create.errorName');
+      if (!basic.age || Number(basic.age) < 16) return t('create.errorAge');
+      if (basic.looking_for.length === 0) return t('create.errorLookingFor');
     }
-    // For section steps, required = all non-text questions should be answered
     if (currentSection) {
       const required = currentSection.questions.filter(q => q.type !== 'text');
       const unanswered = required.filter(q => answers[q.id] == null);
       if (unanswered.length > 0) {
-        return `Please answer all questions in this section (${unanswered.length} remaining).`;
+        return `${t('create.errorAnswers')} (${unanswered.length} ${t('create.remaining')}).`;
       }
     }
     return null;
@@ -123,26 +130,43 @@ export default function CreateProfile() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // ── Success Screen ─────────────────────────────────────────────────────────
+  const LOOKING_FOR_OPTIONS = [
+    { value: 'romantic', label: t('create.romantic') },
+    { value: 'roommate', label: t('create.roommate') },
+    { value: 'friend',   label: t('create.friend') },
+    { value: 'travel',   label: t('create.travel') },
+  ];
+
+  const GENDER_OPTIONS = t('create.genderOptions', { returnObjects: true });
+
+  // ── Success Screen ──────────────────────────────────────────────────────────
   if (created) {
     return (
       <div className="create-page">
         <div className="success-card">
           <div className="success-burst">🎉</div>
-          <h2>You're all set, {basic.name}!</h2>
-          <p>Your deep profile has been created. Share your ID with the person you want to check compatibility with.</p>
+          <h2>{t('create.successTitle')} {basic.name}!</h2>
+          <p>{t('create.successDesc')}</p>
           <div className="id-display">
-            <div className="id-label">Your Profile ID</div>
+            <div className="id-label">{t('create.profileId')}</div>
             <div className="id-number">#{created}</div>
-            <button className="copy-btn" onClick={copyId}>{copied ? '✓ Copied!' : 'Copy ID'}</button>
+            <button className="copy-btn" onClick={copyId}>
+              {copied ? t('create.copied') : t('create.copyId')}
+            </button>
           </div>
           <div className="success-hint">
-            Ask them to go to <strong>Find Match</strong>, enter both profile IDs, and see your results.
+            {t('create.successHint')}
           </div>
           <div className="success-actions">
-            <button className="btn btn-primary" onClick={() => navigate('/match')}>Find Match →</button>
-            <button className="btn btn-outline" onClick={() => { setCreated(null); setStep(0); setBasic({ name:'',age:'',gender:'',city:'',looking_for:[],what_i_bring:'',deal_breakers:'' }); setAnswers({}); }}>
-              Create Another
+            <button className="btn btn-primary" onClick={() => navigate('/match')}>
+              {t('create.findMatchBtn')}
+            </button>
+            <button className="btn btn-outline" onClick={() => {
+              setCreated(null); setStep(0);
+              setBasic({ name:'',age:'',gender:'',city:'',looking_for:[],what_i_bring:'',deal_breakers:'' });
+              setAnswers({});
+            }}>
+              {t('create.createAnother')}
             </button>
           </div>
         </div>
@@ -154,19 +178,19 @@ export default function CreateProfile() {
     <div className="create-page">
       {/* Header */}
       <div className="create-header">
-        <h1>{step === 0 ? 'Create Your Profile' : currentSection?.title}</h1>
-        <p>{step === 0 ? 'A deep look at who you really are.' : currentSection?.description}</p>
+        <h1>{step === 0 ? t('create.title') : currentSection?.title}</h1>
+        <p>{step === 0 ? t('create.subtitle') : currentSection?.description}</p>
       </div>
 
       {/* Progress bar */}
       <div className="progress-bar-wrap">
         <div className="progress-steps">
-          {['You', ...SECTIONS.map(s => s.icon)].map((label, i) => (
+          {['👤', ...sections.map(s => s.icon)].map((label, i) => (
             <button
               key={i}
               className={`progress-step ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`}
               onClick={() => i < step && setStep(i)}
-              title={i === 0 ? 'Basic Info' : SECTIONS[i - 1]?.title}
+              title={i === 0 ? t('create.title') : sections[i - 1]?.title}
             >
               {i < step ? '✓' : label}
             </button>
@@ -175,52 +199,100 @@ export default function CreateProfile() {
         <div className="progress-track">
           <div className="progress-fill" style={{ width: `${progress}%` }} />
         </div>
-        <div className="progress-text">{step === 0 ? 'Step 1 of 8' : `Step ${step + 1} of 8 — ${currentSection?.title}`}</div>
+        <div className="progress-text">
+          {t('create.stepOf')} {step + 1} {t('create.of')} {totalSteps}
+          {currentSection ? ` — ${currentSection.title}` : ''}
+        </div>
       </div>
 
       {/* Step 0: Basic Info */}
       {step === 0 && (
         <div className="form-card">
           <div className="form-grid-2">
-            {BASIC_FIELDS.map(f => (
-              <div key={f.id} className="form-group">
-                <label>{f.label}{f.required && <span className="req"> *</span>}</label>
-                {f.type === 'select' ? (
-                  <select value={basic[f.id]} onChange={e => setBasic(b => ({ ...b, [f.id]: e.target.value }))}>
-                    {f.options.map(o => <option key={o} value={o}>{o || 'Select...'}</option>)}
-                  </select>
-                ) : (
-                  <input type={f.type} value={basic[f.id]} placeholder={f.placeholder}
-                    min={f.type === 'number' ? 16 : undefined} max={f.type === 'number' ? 99 : undefined}
-                    onChange={e => setBasic(b => ({ ...b, [f.id]: e.target.value }))} />
-                )}
-              </div>
-            ))}
+            {/* Name */}
+            <div className="form-group">
+              <label>{t('create.name')}<span className="req"> *</span></label>
+              <input
+                type="text"
+                value={basic.name}
+                placeholder="e.g. Alex"
+                onChange={e => setBasic(b => ({ ...b, name: e.target.value }))}
+              />
+            </div>
+
+            {/* Age */}
+            <div className="form-group">
+              <label>{t('create.age')}<span className="req"> *</span></label>
+              <input
+                type="number"
+                value={basic.age}
+                placeholder="e.g. 27"
+                min={16} max={99}
+                onChange={e => setBasic(b => ({ ...b, age: e.target.value }))}
+              />
+            </div>
+
+            {/* Gender */}
+            <div className="form-group">
+              <label>{t('create.gender')}</label>
+              <select value={basic.gender} onChange={e => setBasic(b => ({ ...b, gender: e.target.value }))}>
+                {(Array.isArray(GENDER_OPTIONS) ? GENDER_OPTIONS : ['', 'Man', 'Woman', 'Non-binary', 'Other / Prefer not to say'])
+                  .map((o, i) => <option key={i} value={o}>{o || 'Select...'}</option>)}
+              </select>
+            </div>
+
+            {/* City — autocomplete */}
+            <div className="form-group">
+              <label>{t('create.city')}</label>
+              <CityAutocomplete
+                value={basic.city}
+                onChange={val => setBasic(b => ({ ...b, city: val }))}
+                placeholder={t('create.cityPlaceholder')}
+              />
+            </div>
           </div>
 
+          {/* Looking for */}
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <label>What are you looking for? <span className="req">*</span></label>
-            <p className="field-hint">Select all that apply.</p>
+            <label>{t('create.lookingFor')}<span className="req"> *</span></label>
+            <p className="field-hint">{t('create.lookingForHint')}</p>
             <div className="looking-for-group">
-              {LOOKING_FOR.map(l => (
+              {LOOKING_FOR_OPTIONS.map(l => (
                 <label key={l.value} className={`lf-card ${basic.looking_for.includes(l.value) ? 'checked' : ''}`}>
-                  <input type="checkbox" checked={basic.looking_for.includes(l.value)} onChange={() => toggleLookingFor(l.value)} />
+                  <input
+                    type="checkbox"
+                    checked={basic.looking_for.includes(l.value)}
+                    onChange={() => toggleLookingFor(l.value)}
+                  />
                   {l.label}
                 </label>
               ))}
             </div>
+            {basic.looking_for.includes('travel') && (
+              <p className="travel-hint">✈️ Travel sections will be added to your assessment.</p>
+            )}
           </div>
 
+          {/* What I bring */}
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <label>What do you bring to a relationship, roommate situation, or friendship?</label>
-            <textarea value={basic.what_i_bring} rows={3} placeholder="Loyalty, humour, great cooking, calm energy..."
-              onChange={e => setBasic(b => ({ ...b, what_i_bring: e.target.value }))} />
+            <label>{t('create.whatIBring')}</label>
+            <textarea
+              value={basic.what_i_bring}
+              rows={3}
+              placeholder={t('create.whatIBringPlaceholder')}
+              onChange={e => setBasic(b => ({ ...b, what_i_bring: e.target.value }))}
+            />
           </div>
 
+          {/* Deal breakers */}
           <div className="form-group" style={{ marginTop: '1rem' }}>
-            <label>Your deal breakers</label>
-            <textarea value={basic.deal_breakers} rows={3} placeholder="Smoking, dishonesty, different life goals..."
-              onChange={e => setBasic(b => ({ ...b, deal_breakers: e.target.value }))} />
+            <label>{t('create.dealBreakers')}</label>
+            <textarea
+              value={basic.deal_breakers}
+              rows={3}
+              placeholder={t('create.dealBreakersPlaceholder')}
+              onChange={e => setBasic(b => ({ ...b, deal_breakers: e.target.value }))}
+            />
           </div>
         </div>
       )}
@@ -237,17 +309,22 @@ export default function CreateProfile() {
         </div>
       )}
 
-      {/* Final step — review */}
-      {step === SECTIONS.length + 1 && (
+      {/* Final review step */}
+      {step === sections.length + 1 && (
         <div className="form-card review-card">
           <div className="review-icon">🏁</div>
-          <h3>You're done!</h3>
-          <p>You've answered {Object.keys(answers).length} questions across 7 sections. Your profile is ready to be created.</p>
+          <h3>{t('create.doneTitle')}</h3>
+          <p>
+            {Object.keys(answers).length} {t('create.answered')}.{' '}
+            {t('create.doneDesc')}
+          </p>
           <div className="review-summary">
-            <div className="review-item"><strong>Name:</strong> {basic.name}</div>
-            <div className="review-item"><strong>Age:</strong> {basic.age}</div>
-            <div className="review-item"><strong>City:</strong> {basic.city || '—'}</div>
-            <div className="review-item"><strong>Looking for:</strong> {basic.looking_for.join(', ')}</div>
+            <div className="review-item"><strong>{t('create.nameLabel')}:</strong> {basic.name}</div>
+            <div className="review-item"><strong>{t('create.ageLabel')}:</strong> {basic.age}</div>
+            <div className="review-item"><strong>{t('create.cityLabel')}:</strong> {basic.city || '—'}</div>
+            <div className="review-item">
+              <strong>{t('create.lookingForLabel')}:</strong> {basic.looking_for.join(', ')}
+            </div>
           </div>
         </div>
       )}
@@ -257,15 +334,19 @@ export default function CreateProfile() {
       {/* Navigation */}
       <div className="form-nav">
         {step > 0 && (
-          <button className="btn btn-outline" onClick={back}>← Back</button>
+          <button className="btn btn-outline" onClick={back}>{t('create.back')}</button>
         )}
-        {step < SECTIONS.length + 1 ? (
+        {step < sections.length + 1 ? (
           <button className="btn btn-primary" onClick={next}>
-            {step === 0 ? 'Start Assessment →' : step === SECTIONS.length ? 'Review & Finish →' : 'Next Section →'}
+            {step === 0
+              ? t('create.start')
+              : step === sections.length
+              ? t('create.reviewFinish')
+              : t('create.nextSection')}
           </button>
         ) : (
           <button className="btn btn-primary" onClick={submit} disabled={loading}>
-            {loading ? 'Creating...' : '✨ Create My Profile'}
+            {loading ? t('create.creating') : t('create.createProfile')}
           </button>
         )}
       </div>

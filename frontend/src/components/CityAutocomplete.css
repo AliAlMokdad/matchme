@@ -1,0 +1,114 @@
+/* ── City Autocomplete ─────────────────────────────────────────────────────── */
+
+.city-ac {
+  position: relative;
+  width: 100%;
+}
+
+.city-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.city-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 1rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+[dir='rtl'] .city-icon {
+  left: auto;
+  right: 12px;
+}
+
+.city-input {
+  width: 100%;
+  padding: 11px 38px 11px 38px;
+  border: 1.5px solid var(--gray-200, #e5e7eb);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--gray-800, #1f2937);
+  background: var(--gray-50, #f9fafb);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.city-input:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+  background: white;
+}
+
+.city-spinner {
+  position: absolute;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+[dir='rtl'] .city-spinner {
+  right: auto;
+  left: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.city-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.11), 0 2px 8px rgba(0,0,0,0.06);
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  z-index: 100;
+  animation: city-pop 0.14s ease;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+@keyframes city-pop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.city-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: #374151;
+  transition: background 0.12s;
+}
+
+.city-option:hover {
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+
+.city-pin {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.city-text {
+  line-height: 1.35;
+}
