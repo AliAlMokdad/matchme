@@ -391,7 +391,7 @@
 }
 
 .picker-btn:hover {
-  background: color-mix(in srgb, var(--bc) 10%, white);
+  background: #f5f0ff;
   transform: translateY(-1px);
 }
 
