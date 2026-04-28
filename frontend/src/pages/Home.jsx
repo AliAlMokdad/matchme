@@ -75,6 +75,17 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Social proof strip */}
+      <section className="proof-strip">
+        <div className="proof-item"><span className="proof-num">70+</span><span className="proof-label">Questions analysed</span></div>
+        <div className="proof-divider" />
+        <div className="proof-item"><span className="proof-num">5</span><span className="proof-label">Compatibility categories</span></div>
+        <div className="proof-divider" />
+        <div className="proof-item"><span className="proof-num">5</span><span className="proof-label">Languages supported</span></div>
+        <div className="proof-divider" />
+        <div className="proof-item"><span className="proof-num">AI</span><span className="proof-label">Powered by Claude</span></div>
+      </section>
+
       {/* CTA */}
       <section className="cta-section">
         <div className="cta-card">

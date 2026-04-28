@@ -97,8 +97,20 @@
 .match-btn:hover { opacity: 0.92; transform: translateY(-1px); }
 .match-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
 
-/* Results */
-.results { display: flex; flex-direction: column; gap: 1.5rem; }
+/* Results — fade-up entry */
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.results.results-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 /* Name banner */
 .name-banner {
@@ -117,20 +129,94 @@
 .person-tag.pink   { border-color: #db2777; color: #db2777; background: #fce7f3; }
 .heart-mid { font-size: 1.5rem; }
 
-/* Overall card */
+/* ── Overall Tier Card ────────────────────────────────────────────────────── */
 .overall-card {
-  background: var(--gradient);
   border-radius: var(--radius);
-  padding: 2rem 2.5rem;
+  padding: 0;
   box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Tier card uses CSS custom props from JS */
+.tier-card {
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
   color: white;
+  padding: 2.5rem;
+}
+
+/* Animated glow ring behind the score */
+.tier-glow-ring {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--tier-glow, rgba(124,58,237,0.25)) 0%, transparent 70%);
+  pointer-events: none;
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
 }
 
 .overall-top { display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap; }
 
-.overall-label { font-size: 0.82rem; font-weight: 600; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.08em; }
-.overall-score { font-size: 5rem; font-weight: 900; line-height: 1; }
-.overall-tag   { font-size: 1.1rem; font-weight: 700; opacity: 0.9; margin-top: 4px; }
+.overall-left { display: flex; flex-direction: column; gap: 4px; }
+
+.tier-emoji-large {
+  font-size: 2.8rem;
+  line-height: 1;
+  margin-bottom: 8px;
+  animation: tier-bounce 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes tier-bounce {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(5deg); }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.overall-score-num {
+  font-size: 5.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: white;
+  letter-spacing: -2px;
+  text-shadow: 0 0 40px var(--tier-glow, rgba(255,255,255,0.2));
+}
+
+.overall-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+}
+
+.tier-label {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--tier-color, #a78bfa);
+  margin-top: 6px;
+  text-shadow: 0 0 20px var(--tier-glow, rgba(167,139,250,0.5));
+}
+
+.tier-tagline {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.55);
+  font-style: italic;
+  margin-top: 6px;
+  max-width: 280px;
+  line-height: 1.45;
+}
+
+.overall-tag { font-size: 1.1rem; font-weight: 700; opacity: 0.9; margin-top: 4px; }
 
 .score-rings { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
 
@@ -794,10 +880,120 @@
 
 .reset-btn:hover { background: var(--purple-light); }
 
+/* ── Calculating Screen (anticipation builder) ──────────────────────────── */
+.calculating-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 3rem 2rem;
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.calc-orb {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--gradient);
+  animation: orb-spin 2.5s linear infinite, orb-pulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 40px rgba(124,58,237,0.45);
+}
+
+@keyframes orb-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orb-pulse {
+  0%, 100% { box-shadow: 0 0 30px rgba(124,58,237,0.4); }
+  50% { box-shadow: 0 0 60px rgba(124,58,237,0.7); }
+}
+
+.calc-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.calc-step {
+  font-size: 0.88rem;
+  color: var(--gray-300);
+  transition: color 0.4s, transform 0.4s;
+  transform: translateX(-6px);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.calc-step.visible {
+  color: var(--gray-600);
+  transform: translateX(0);
+}
+
+.calc-step.done {
+  color: #22c55e;
+}
+
+/* ── Scroll-reveal wrapper ──────────────────────────────────────────────── */
+.reveal-wrapper {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.reveal-wrapper.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── AI pulse dots loader ───────────────────────────────────────────────── */
+.ai-pulse-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ai-pulse-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #7c3aed;
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+
+.ai-pulse-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai-pulse-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Compat arrow ───────────────────────────────────────────────────────── */
+.compat-arrow {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+}
+
+/* ── Ring label for dark bg ─────────────────────────────────────────────── */
+.tier-card .ring-label { color: rgba(255,255,255,0.7); }
+.tier-card .ring-emoji { filter: drop-shadow(0 0 4px rgba(255,255,255,0.3)); }
+
+/* ── Exceptional note ───────────────────────────────────────────────────── */
+.exceptional-note {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tier-color, #a78bfa);
+  animation: pulse 2s ease infinite;
+}
+
 @media (max-width: 640px) {
   .id-inputs { flex-direction: column; align-items: stretch; }
   .vs-pill { align-self: center; }
   .overall-top { flex-direction: column; align-items: flex-start; }
+  .overall-score-num { font-size: 4rem; }
   .personality-grid { grid-template-columns: 1fr; }
   .section-bar-label { width: 90px; }
   .mini-bar { width: 60px; }
@@ -806,4 +1002,8 @@
   .skel-row { grid-template-columns: 1fr; }
   .compat-picker { flex-direction: column; }
   .share-row { justify-content: center; }
+  .tier-glow-ring { width: 200px; height: 200px; top: -40px; right: -40px; }
+  .ai-teaser-card { flex-direction: column; text-align: center; }
+  .ai-pers-grid { grid-template-columns: 1fr; }
+  .ai-similarity { flex-direction: column; align-items: flex-start; }
 }

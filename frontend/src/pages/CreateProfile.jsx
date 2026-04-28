@@ -1,10 +1,23 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getSectionsFor } from '../data/questions';
 import QuestionStep from '../components/QuestionStep';
 import CityAutocomplete from '../components/CityAutocomplete';
 import './CreateProfile.css';
+
+// Motivational messages — appear as the user progresses (variable reward schedule)
+const MOMENTUM_MSGS = [
+  null, // step 0 — no message
+  { emoji: '🚀', text: "Great start! You're already more self-aware than most people who skip this." },
+  { emoji: '💡', text: "Section 2 done. Most people stop here — you didn't." },
+  { emoji: '🔥', text: "Halfway through. The deeper you go, the better your match will be." },
+  { emoji: '⚡', text: "Your answers are shaping a uniquely detailed compatibility profile right now." },
+  { emoji: '💜', text: "Almost there. The last sections are where the real you comes through." },
+  { emoji: '🌟', text: "One more section to go. This is where we separate the serious from the casual." },
+  { emoji: '✨', text: "Final stretch. Something interesting is about to be revealed." },
+  { emoji: '🎯', text: "All sections complete. Your compatibility profile is the most complete version possible." },
+];
 
 const STORAGE_KEY = 'matchme_draft';
 
@@ -13,6 +26,8 @@ export default function CreateProfile() {
   const { t } = useTranslation();
 
   const [step, setStep] = useState(0);
+  const [showMomentum, setShowMomentum] = useState(false);
+  const momentumTimeout = useRef(null);
   const [basic, setBasic] = useState({
     name: '', age: '', gender: '', city: '',
     looking_for: [], what_i_bring: '', deal_breakers: '',
@@ -85,7 +100,14 @@ export default function CreateProfile() {
     const err = validateStep();
     if (err) { setError(err); return; }
     setError('');
-    setStep(s => s + 1);
+    const nextStep = step + 1;
+    setStep(nextStep);
+    // Show momentum message for 3.5s then fade
+    if (MOMENTUM_MSGS[nextStep]) {
+      setShowMomentum(true);
+      clearTimeout(momentumTimeout.current);
+      momentumTimeout.current = setTimeout(() => setShowMomentum(false), 3500);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -181,6 +203,14 @@ export default function CreateProfile() {
         <h1>{step === 0 ? t('create.title') : currentSection?.title}</h1>
         <p>{step === 0 ? t('create.subtitle') : currentSection?.description}</p>
       </div>
+
+      {/* Momentum message — variable reward to keep engagement high */}
+      {showMomentum && MOMENTUM_MSGS[step] && (
+        <div className="momentum-toast">
+          <span className="momentum-emoji">{MOMENTUM_MSGS[step].emoji}</span>
+          <span className="momentum-text">{MOMENTUM_MSGS[step].text}</span>
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="progress-bar-wrap">
@@ -301,6 +331,13 @@ export default function CreateProfile() {
       {currentSection && (
         <div className="form-card questions-card">
           <div className="section-icon-large">{currentSection.icon}</div>
+          {/* Section completion mini-counter */}
+          <div className="section-q-counter">
+            {currentSection.questions.filter(q => q.type !== 'text').length} questions in this section
+            <span className="section-remaining">
+              {' '}— {currentSection.questions.filter(q => q.type !== 'text' && answers[q.id] == null).length} remaining
+            </span>
+          </div>
           {currentSection.questions.map(q => (
             <div key={q.id} className="question-item">
               <QuestionStep question={q} value={answers[q.id]} onChange={val => setAnswer(q.id, val)} />
