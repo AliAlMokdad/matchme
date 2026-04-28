@@ -233,6 +233,209 @@ function OpenAnswers({ openAnswers, name1, name2, t }) {
   );
 }
 
+// ─── Music Section ────────────────────────────────────────────────────────────
+function AudioBar({ label, icon, valA, valB, nameA, nameB, colorA, colorB }) {
+  const dispA = useCountUp(Math.round(valA * 100), 900, 200);
+  const dispB = useCountUp(Math.round(valB * 100), 900, 300);
+  return (
+    <div className="audio-bar-row">
+      <div className="audio-bar-label">{icon} {label}</div>
+      <div className="audio-bar-pair">
+        <span className="audio-name">{nameA}</span>
+        <div className="audio-track">
+          <div className="audio-fill" style={{ width: `${dispA}%`, background: colorA }} />
+        </div>
+        <span className="audio-val">{dispA}</span>
+      </div>
+      <div className="audio-bar-pair">
+        <span className="audio-name">{nameB}</span>
+        <div className="audio-track">
+          <div className="audio-fill" style={{ width: `${dispB}%`, background: colorB }} />
+        </div>
+        <span className="audio-val">{dispB}</span>
+      </div>
+    </div>
+  );
+}
+
+function MusicSection({ result }) {
+  const { music, profile1, profile2 } = result;
+  const [data, setData]       = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
+
+  const bothConnected  = music?.aConnected && music?.bConnected;
+  const neitherConnected = !music?.aConnected && !music?.bConnected;
+
+  // Auto-load when both connected
+  useEffect(() => {
+    if (bothConnected && !fetched && !loading) {
+      setLoading(true); setFetched(true);
+      fetch(`/api/music-match?profile1=${profile1.id}&profile2=${profile2.id}`)
+        .then(r => r.json())
+        .then(d => { setData(d); setLoading(false); })
+        .catch(() => setLoading(false));
+    }
+  }, [bothConnected, fetched, loading, profile1.id, profile2.id]);
+
+  // ── Neither connected — teaser ──────────────────────────────────────────────
+  if (neitherConnected) {
+    return (
+      <div className="music-teaser-card">
+        <div className="music-teaser-glow" />
+        <div className="music-teaser-header">
+          <div className="music-spotify-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+              <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+            </svg>
+          </div>
+          <div>
+            <div className="music-teaser-title">🎵 Music Compatibility — Locked</div>
+            <div className="music-teaser-sub">Connect Spotify to unlock a whole new dimension</div>
+          </div>
+        </div>
+        <p className="music-teaser-body">
+          Your Spotify knows things no questionnaire can capture: how intense you go on a Friday,
+          whether you would agree on a road trip playlist, and if you are both up at 2am listening
+          to something heavy — or neither of you are.
+        </p>
+        <div className="music-features-grid">
+          {[['🎸','Shared artists'],['😊','Mood signature'],['⚡','Energy sync'],
+            ['🎼','Genre overlap'],['💬','Music icebreaker'],['🤖','AI analysis']].map(([ic, lb]) => (
+            <div key={lb} className="music-feat-chip"><span>{ic}</span>{lb}</div>
+          ))}
+        </div>
+        <div className="music-connect-row">
+          <a className="music-connect-btn" href={`/api/spotify-auth?profile_id=${profile1.id}`}>
+            <SpotifyLogo /> Connect {profile1.name}
+          </a>
+          <a className="music-connect-btn" href={`/api/spotify-auth?profile_id=${profile2.id}`}>
+            <SpotifyLogo /> Connect {profile2.name}
+          </a>
+        </div>
+        <p className="music-disclaimer">Free · Takes 10 seconds each · Only reads top tracks — nothing else.</p>
+      </div>
+    );
+  }
+
+  // ── One connected — partial ────────────────────────────────────────────────
+  if (!bothConnected) {
+    const connectedName = music.aConnected ? profile1.name : profile2.name;
+    const missingId     = music.aConnected ? profile2.id  : profile1.id;
+    const missingName   = music.aConnected ? profile2.name : profile1.name;
+    return (
+      <div className="music-partial-card">
+        <div className="music-partial-icon">🎵</div>
+        <h3 className="music-partial-title">Music Compatibility — Almost There</h3>
+        <p className="music-partial-body">
+          <strong>{connectedName}</strong> has connected their Spotify.
+          Ask <strong>{missingName}</strong> to connect theirs to reveal your music analysis.
+        </p>
+        <div className="music-partial-status">
+          <div className="mps-item mps-done">✅ {connectedName}</div>
+          <div className="mps-item mps-wait">⏳ {missingName}</div>
+        </div>
+        <a className="music-connect-btn music-connect-btn-full" href={`/api/spotify-auth?profile_id=${missingId}`}>
+          <SpotifyLogo /> {missingName}: Connect Spotify now
+        </a>
+      </div>
+    );
+  }
+
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (loading || !data) {
+    return (
+      <div className="music-loading-card">
+        <div className="music-loading-orb" />
+        <p>Analysing music compatibility...</p>
+      </div>
+    );
+  }
+
+  // ── Both connected — full result ───────────────────────────────────────────
+  const scoreColor = data.score >= 75 ? '#1db954' : data.score >= 55 ? '#f59e0b' : '#ef4444';
+  const afA = data.audioFeaturesA || {};
+  const afB = data.audioFeaturesB || {};
+
+  return (
+    <div className="music-result-card">
+      <div className="music-result-glow" style={{ background: `radial-gradient(circle, ${scoreColor}33 0%, transparent 70%)` }} />
+
+      {/* Header with score */}
+      <div className="music-result-header">
+        <div className="music-result-title">
+          <span className="music-result-emoji">🎵</span>
+          <div>
+            <div className="music-result-label">Music Compatibility</div>
+            <div className="music-result-powered">Powered by Spotify{data.narrative && process.env.NODE_ENV !== 'production' ? '' : ''}</div>
+          </div>
+        </div>
+        <div className="music-score-badge" style={{ color: scoreColor, borderColor: scoreColor }}>
+          {data.score}%
+        </div>
+      </div>
+
+      {/* Shared artists */}
+      {data.sharedArtists?.length > 0 && (
+        <div className="music-shared">
+          <div className="music-shared-label">🔗 You both listen to</div>
+          <div className="music-artist-chips">
+            {data.sharedArtists.map(a => <span key={a} className="artist-chip">{a}</span>)}
+          </div>
+        </div>
+      )}
+
+      {/* Audio feature comparison */}
+      <div className="audio-features-section">
+        <div className="audio-features-title">Sound Profiles</div>
+        <AudioBar label="Energy"       icon="⚡" valA={afA.energy||0.5}       valB={afB.energy||0.5}       nameA={profile1.name} nameB={profile2.name} colorA="#7c3aed" colorB="#db2777" />
+        <AudioBar label="Mood"         icon="😊" valA={afA.valence||0.5}      valB={afB.valence||0.5}      nameA={profile1.name} nameB={profile2.name} colorA="#7c3aed" colorB="#db2777" />
+        <AudioBar label="Danceability" icon="💃" valA={afA.danceability||0.5} valB={afB.danceability||0.5} nameA={profile1.name} nameB={profile2.name} colorA="#7c3aed" colorB="#db2777" />
+        <AudioBar label="Acoustic"     icon="🎸" valA={afA.acousticness||0.5} valB={afB.acousticness||0.5} nameA={profile1.name} nameB={profile2.name} colorA="#7c3aed" colorB="#db2777" />
+      </div>
+
+      {/* Top genres */}
+      <div className="music-genres-section">
+        <div className="music-genre-col">
+          <div className="music-genre-name">{profile1.name}</div>
+          <div className="music-genre-chips">
+            {(data.topGenresA||[]).slice(0,4).map(g => <span key={g} className="genre-chip genre-chip-a">{g}</span>)}
+          </div>
+        </div>
+        <div className="music-genre-col">
+          <div className="music-genre-name">{profile2.name}</div>
+          <div className="music-genre-chips">
+            {(data.topGenresB||[]).slice(0,4).map(g => <span key={g} className="genre-chip genre-chip-b">{g}</span>)}
+          </div>
+        </div>
+      </div>
+
+      {/* Narrative */}
+      {data.narrative && (
+        <div className="music-narrative">
+          <p>{data.narrative}</p>
+        </div>
+      )}
+
+      {/* Icebreaker */}
+      {data.icebreaker && (
+        <div className="music-icebreaker">
+          <div className="music-ice-label">🎤 Music Icebreaker</div>
+          <div className="music-ice-bubble">"{data.icebreaker}"</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SpotifyLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+    </svg>
+  );
+}
+
 // ─── AI Section ───────────────────────────────────────────────────────────────
 function AISection({ result, lang, t }) {
   const [aiData, setAiData] = useState(null);
@@ -610,6 +813,11 @@ export default function Match() {
           {/* Smart Compat */}
           <RevealCard delay={250}>
             <SmartCompatSection result={result} t={t} />
+          </RevealCard>
+
+          {/* Music Section */}
+          <RevealCard delay={280}>
+            <MusicSection result={result} />
           </RevealCard>
 
           {/* AI Section */}

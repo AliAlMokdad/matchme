@@ -39,9 +39,16 @@ module.exports = async (req, res) => {
 
     const result = calculateMatch(a, b);
 
+    // Include Spotify connection status so frontend can show music section
+    const music = {
+      aConnected: !!(raw1.spotify_data?.connected),
+      bConnected: !!(raw2.spotify_data?.connected),
+    };
+
     res.json({
       profile1: { id: a.id, name: a.name, age: a.age, city: a.city },
       profile2: { id: b.id, name: b.name, age: b.age, city: b.city },
+      music,
       ...result,
     });
   } catch (err) {
