@@ -146,14 +146,15 @@ module.exports = async (req, res) => {
 
   try {
     const [{ data: raw1 }, { data: raw2 }] = await Promise.all([
-      supabase.from('profiles').select('id, name, spotify_data').eq('id', profile1).single(),
-      supabase.from('profiles').select('id, name, spotify_data').eq('id', profile2).single(),
+      supabase.from('profiles').select('id, name, responses').eq('id', profile1).single(),
+      supabase.from('profiles').select('id, name, responses').eq('id', profile2).single(),
     ]);
 
     if (!raw1 || !raw2) return res.status(404).json({ error: 'Profile not found' });
 
-    const sdA = raw1.spotify_data;
-    const sdB = raw2.spotify_data;
+    // Spotify data is stored inside responses._spotify (no extra column needed)
+    const sdA = raw1.responses?._spotify;
+    const sdB = raw2.responses?._spotify;
 
     if (!sdA?.connected || !sdB?.connected) {
       return res.json({

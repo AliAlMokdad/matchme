@@ -92,10 +92,18 @@ module.exports = async (req, res) => {
       connected_at:   new Date().toISOString(),
     };
 
-    // 5. Save to Supabase
+    // 5. Save to Supabase — merge into existing responses jsonb (no schema change needed)
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('responses')
+      .eq('id', profileId)
+      .single();
+
+    const updatedResponses = { ...(existing?.responses || {}), _spotify: spotifyData };
+
     const { error: dbErr } = await supabase
       .from('profiles')
-      .update({ spotify_data: spotifyData })
+      .update({ responses: updatedResponses })
       .eq('id', profileId);
 
     if (dbErr) throw new Error(dbErr.message);

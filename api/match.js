@@ -39,10 +39,10 @@ module.exports = async (req, res) => {
 
     const result = calculateMatch(a, b);
 
-    // Include Spotify connection status so frontend can show music section
+    // Include Spotify connection status — stored inside responses._spotify (no extra column needed)
     const music = {
-      aConnected: !!(raw1.spotify_data?.connected),
-      bConnected: !!(raw2.spotify_data?.connected),
+      aConnected: !!(raw1.responses?._spotify?.connected),
+      bConnected: !!(raw2.responses?._spotify?.connected),
     };
 
     res.json({
