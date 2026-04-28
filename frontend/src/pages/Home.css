@@ -274,6 +274,8 @@
   white-space: nowrap;
 }
 
+.proof-item-eros { padding: 0; }
+
 .proof-divider {
   width: 1px;
   height: 40px;

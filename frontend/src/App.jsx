@@ -5,6 +5,7 @@ import i18n from './i18n/index';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import FloatingBackground from './components/FloatingBackground';
+import AmbientMusic from './components/AmbientMusic';
 import Home from './pages/Home';
 import CreateProfile from './pages/CreateProfile';
 import Match from './pages/Match';
@@ -68,6 +69,7 @@ export default function App() {
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Navbar />
         <SpotifyToast />
+        <AmbientMusic />
         <div style={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<Home />} />

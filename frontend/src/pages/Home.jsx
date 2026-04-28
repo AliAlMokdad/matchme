@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import DigitalEros from '../components/DigitalEros';
 import './Home.css';
 
 export default function Home() {
@@ -83,7 +84,7 @@ export default function Home() {
         <div className="proof-divider" />
         <div className="proof-item"><span className="proof-num">5</span><span className="proof-label">Languages supported</span></div>
         <div className="proof-divider" />
-        <div className="proof-item"><span className="proof-num">AI</span><span className="proof-label">Powered by Claude</span></div>
+        <div className="proof-item proof-item-eros"><DigitalEros /></div>
       </section>
 
       {/* CTA */}

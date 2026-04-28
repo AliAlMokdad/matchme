@@ -1,0 +1,115 @@
+.eros-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0.6rem 1.5rem 0.5rem;
+  overflow: hidden;
+}
+
+/* ── Floating hearts ──────────────────────────────────────────────────────── */
+.eros-hearts-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.eros-heart {
+  position: absolute;
+  bottom: -4px;
+  color: #f0abfc;
+  animation: heart-float linear infinite both;
+  user-select: none;
+}
+
+@keyframes heart-float {
+  0%   { transform: translateY(0)   rotate(-8deg)  scale(1);    opacity: var(--op, 0.6); }
+  40%  { transform: translateY(-28px) rotate(6deg)  scale(1.1); opacity: var(--op, 0.6); }
+  80%  { transform: translateY(-52px) rotate(-4deg) scale(0.9); opacity: calc(var(--op, 0.6) * 0.4); }
+  100% { transform: translateY(-64px) rotate(0deg)  scale(0.7); opacity: 0; }
+}
+
+/* ── Arrow + label row ────────────────────────────────────────────────────── */
+.eros-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  z-index: 1;
+}
+
+/* Arrow */
+.eros-arrow-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.eros-arrow-svg {
+  width: 72px;
+  height: 22px;
+  animation: arrow-shoot 3.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(240, 171, 252, 0.5));
+}
+
+@keyframes arrow-shoot {
+  0%   { transform: translateX(-4px); opacity: 0.7; }
+  40%  { transform: translateX(2px);  opacity: 1;   }
+  70%  { transform: translateX(5px);  opacity: 1;   }
+  100% { transform: translateX(-4px); opacity: 0.7; }
+}
+
+/* Sparkles */
+.eros-spark {
+  position: absolute;
+  color: #f0abfc;
+  font-size: 0.6rem;
+  animation: spark-twinkle 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.eros-spark-1 { top: -6px; right: 4px;  animation-delay: 0s;    font-size: 0.55rem; }
+.eros-spark-2 { bottom: -4px; left: 8px; animation-delay: 0.9s;  font-size: 0.45rem; color: #c084fc; }
+.eros-spark-3 { top: 2px; left: 20px;   animation-delay: 1.7s;  font-size: 0.9rem;  color: #f9a8d4; }
+
+@keyframes spark-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  50%       { opacity: 1; transform: scale(1.2); }
+}
+
+/* ── Text ─────────────────────────────────────────────────────────────────── */
+.eros-text-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.eros-powered {
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.eros-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #c084fc 0%, #f0abfc 40%, #f9a8d4 70%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.04em;
+  animation: eros-shimmer 4s ease-in-out infinite;
+  background-size: 200% auto;
+}
+
+@keyframes eros-shimmer {
+  0%   { background-position: 0%   center; }
+  50%  { background-position: 100% center; }
+  100% { background-position: 0%   center; }
+}
